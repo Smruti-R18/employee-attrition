@@ -2,6 +2,7 @@ from src.exception import CustomException
 from src.logger import logging
 
 from src.entity.config_entity import DataIngestionConfig
+from src.entity.artifact_entity import DataIngestionArtifact
 
 import os
 import sys
@@ -29,9 +30,10 @@ class DataIngestion:
             train_data.to_csv(self.data_ingestion_config.training_file_path,index=False)
             test_data.to_csv(self.data_ingestion_config.testing_file_path,index=False)
 
-            return(
-                self.data_ingestion_config.training_file_path,
-                self.data_ingestion_config.testing_file_path
+            return DataIngestionArtifact(
+                train_file_path=self.data_ingestion_config.training_file_path,
+                test_file_path=self.data_ingestion_config.testing_file_path,
+                feature_store_path=self.data_ingestion_config.feature_store_file_path
             )
         except Exception as e:
             raise CustomException(e,sys)
