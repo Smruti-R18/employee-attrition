@@ -6,4 +6,7 @@ seaborn
 xgboost
 imblearn
 flask
+mysql-connector-python
+sqlalchemy
+pymysql
 #-e .
