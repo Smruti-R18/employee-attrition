@@ -3,11 +3,10 @@ import os
 from src.constants import constants
 
 class TrainingPipelineConfig:
-    def __init__(self,timestamp=datetime.now()):
-        timestamp=timestamp.strftime("%m_%d_%Y_%H_%M_%S")
+    def __init__(self):
         self.pipeline_name = constants.PIPELINE_NAME
         self.artifact_name = constants.ARTIFACT_DIR
-        self.artifact_dir = os.path.join(self.artifact_name,timestamp)
+        self.artifact_dir = os.path.join(self.artifact_name)
 
 class DataIngestionConfig:
     def __init__(self,training_pipeline_config:TrainingPipelineConfig):

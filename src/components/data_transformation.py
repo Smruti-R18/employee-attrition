@@ -36,18 +36,18 @@ class DataTransformation():
             test_data = pd.read_csv(self.data_ingestion_artifact.test_file_path)
 
             drop_col = ['EmployeeCount','EmployeeNumber','Over18','StandardHours']
-            train_data.drop(columns=drop_col,axis=1,inplace=True,errors='ignore')
-            test_data.drop(columns=drop_col,axis=1,inplace=True,errors='ignore')
+            train_data.drop(columns=drop_col,inplace=True,errors='ignore')
+            test_data.drop(columns=drop_col,inplace=True,errors='ignore')
             logging.info(f"Dropped columns : {drop_col}")
 
-            X_train = train_data.drop(columns=['Attrition'])
+            X_train = train_data.drop(columns=[constants.TARGET_COLUMN])
             y_train = train_data[constants.TARGET_COLUMN]
-            X_test = test_data.drop(columns=['Attrition'])
+            X_test = test_data.drop(columns=[constants.TARGET_COLUMN])
             y_test = test_data[constants.TARGET_COLUMN]
             logging.info("Split the dependent and independent features")
 
-            y_train = y_train.replace({'Yes':0, 'No':1})
-            y_test = y_test.replace({'Yes':0, 'No':1})
+            y_train = y_train.replace({'Yes':1, 'No':0})
+            y_test = y_test.replace({'Yes':1, 'No':0})
 
             numerical_features = self.fetch_numerical_features(X_train)
             categorical_features = self.fetch_categorical_features(X_train)

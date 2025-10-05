@@ -1,12 +1,11 @@
 import os
 import sys
 import joblib
+from sklearn.metrics import f1_score, roc_auc_score
 
 from src.exception import CustomException
 from src.logger import logging
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import f1_score
-
 
 def save_object(file_path, obj):
     try:
@@ -48,10 +47,21 @@ def evaluate_models(X_train, y_train, X_test, y_test, models, params):
                 best_estimator = model
                 best_estimator.fit(X_train, y_train)
 
+            # 🔹 Predictions
             y_test_pred = best_estimator.predict(X_test)
             test_f1 = f1_score(y_test, y_test_pred, average="weighted")
 
-            report[model_name] = test_f1
+            # 🔹 AUC (only if model supports probabilities)
+            auc = None
+            if hasattr(best_estimator, "predict_proba"):
+                y_test_prob = best_estimator.predict_proba(X_test)[:, 1]
+                auc = roc_auc_score(y_test, y_test_prob)
+
+            # Store metrics
+            report[model_name] = {
+                "f1_weighted": test_f1,
+                "auc": auc
+            }
 
             if test_f1 > best_score:
                 best_score = test_f1

@@ -41,7 +41,7 @@ class ModelTrainer:
             "KNN" : KNeighborsClassifier(),
             "Naive Bayes" : GaussianNB(),
             "AdaBoost" : AdaBoostClassifier(),
-            "XGBBoost" : XGBClassifier(),
+            "XGBoost" : XGBClassifier(),
             "Gradient Boost" : GradientBoostingClassifier(verbose=1,random_state=42),
             "Decision Tree" : DecisionTreeClassifier(random_state=42)
             }
@@ -73,7 +73,7 @@ class ModelTrainer:
                     "n_estimators" : [50,100,200],
                     "learning_rate" : [0.01,0.1,1.0]
                 },
-                "XGBBoost" : {
+                "XGBoost" : {
                     "n_estimators" : [50,100,200],
                     "learning_rate" : [0.01,0.1,1.0],
                     "max_depth" : [3,5,7,9]
