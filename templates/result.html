@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employee List</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='resultStyle.css') }}" />
+</head>
+
+<body>
+  <nav>
+    <div class="nav-brand">EmployeePortal</div>
+    <div class="nav-links">
+      <a href="#">Home</a>
+      <a href="#">Employees</a>
+      <a href="#">Reports</a>
+      <a href="/logout">Logout</a>
+    </div>
+  </nav>
+
+  <div class="card">
+    <h2>Employee Directory</h2>
+
+    <div class="filters">
+      <div class="filter-item">
+        <label>Gender</label>
+        <select id="filter-gender">
+          <option value="">All</option>
+          {% for g in data | map(attribute='Gender') | unique | list %}
+            <option value="{{ g }}">{{ g }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-item">
+        <label>Department</label>
+        <select id="filter-dept">
+          <option value="">All</option>
+          {% for d in data | map(attribute='Department') | unique | list %}
+            <option value="{{ d }}">{{ d }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-item">
+        <label>Attrition Probability</label>
+        <div class="range">
+          <input id="filter-prob-min" type="number" step="0.01" min="0" max="1" placeholder="Min (e.g., 0.2)">
+          <span>–</span>
+          <input id="filter-prob-max" type="number" step="0.01" min="0" max="1" placeholder="Max (e.g., 0.8)">
+        </div>
+      </div>
+
+      <div class="filter-actions">
+        <button id="apply-filters" class="btn">Apply</button>
+        <button id="clear-filters" class="btn btn-ghost">Clear</button>
+      </div>
+    </div>
+
+
+   
+
+
+
+    <table>
+      <thead>
+        <tr>
+          <th>Sr No</th>
+          <th>Department</th>
+          <th>Education Field</th>
+          <th>Gender</th>
+          <th>Attrition_Probability</th>
+          <th>Attrition_Prediction</th>
+        </tr>
+      </thead>
+      
+      <tbody>
+        {% for i in data %}
+        <tr 
+          data-gender="{{ i['Gender'] }}"
+          data-dept="{{ i['Department'] }}"
+          data-prob="{{ i['Attrition_Probability'] }}"
+        >
+          <td>{{loop.index}}</td>
+          <td>{{i["Department"]}}</td>
+          <td>{{i["EducationField"]}}</td>
+          <td>{{i["Gender"]}}</td>
+          <td>{{i["Attrition_Probability"] | round(2)}}</td>
+          {% if i["Attrition_Prediction"] == "High-risk" %}
+          <td><span class="status high-risk">{{i["Attrition_Prediction"]}}</span></td>
+          {% elif i["Attrition_Prediction"] == "Medium-risk" %}
+          <td><span class="status medium-risk">{{i["Attrition_Prediction"]}}</span></td>
+          {% else %}
+          <td><span class="status low-risk">{{i["Attrition_Prediction"]}}</span></td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+   {% set low_list = data | selectattr('Attrition_Probability', 'lt', 0.4) | list %}
+    <section class="suggestion-panel">
+      <div class="suggestion-header">
+        <h3>Retention Suggestions (Prob &lt; 0.40)</h3>
+        <span class="count-badge">{{ low_list | length }}</span>
+      </div>
+
+      {% if low_list %}
+        <ul class="suggestion-list">
+          {% for r in low_list %}
+          <li class="suggestion-item">
+            <div class="employee-meta">
+              <div class="emp-tags">
+                <span class="tag dept">{{ r['Department'] }}</span>
+                <span class="tag gender">{{ r['Gender'] }}</span>
+              </div>
+              <div class="prob-chip">
+                Prob: {{ "%.2f"|format(r['Attrition_Probability']) }}
+              </div>
+            </div>
+
+            <div class="suggestion-actions">
+              <!-- Arbitrary, sensible placeholders -->
+              <span class="sugg">{{ loop.cycle(
+                "Review compensation / salary adjustment",
+                "Renew/extend contract early",
+                "Offer flexible work arrangement",
+                "Plan a growth & training path",
+                "Schedule 1:1 for engagement check",
+                "Assign mentor / buddy for support"
+              ) }}</span>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="suggestion-empty">
+          <p>No employees currently below 0.40 probability.</p>
+        </div>
+      {% endif %}
+    </section>
+
+
+  <script>
+    const genderEl = document.getElementById('filter-gender');
+    const deptEl = document.getElementById('filter-dept');
+    const probMinEl = document.getElementById('filter-prob-min');
+    const probMaxEl = document.getElementById('filter-prob-max');
+    const applyBtn = document.getElementById('apply-filters');
+    const clearBtn = document.getElementById('clear-filters');
+
+    const rows = Array.from(document.querySelectorAll('tbody tr'));
+
+    function applyFilters() {
+      const g = genderEl.value.trim();
+      const d = deptEl.value.trim();
+      const minStr = probMinEl.value.trim();
+      const maxStr = probMaxEl.value.trim();
+
+      const min = minStr === '' ? -Infinity : parseFloat(minStr);
+      const max = maxStr === '' ?  Infinity : parseFloat(maxStr);
+
+      rows.forEach(row => {
+        const rowGender = row.dataset.gender || '';
+        const rowDept = row.dataset.dept || '';
+        const rowProb = parseFloat(row.dataset.prob || '0');
+
+        const genderOk = !g || rowGender === g;
+        const deptOk = !d || rowDept === d;
+        const probOk = (rowProb >= min) && (rowProb <= max);
+
+        if (genderOk && deptOk && probOk) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+
+    function clearFilters() {
+      genderEl.value = '';
+      deptEl.value = '';
+      probMinEl.value = '';
+      probMaxEl.value = '';
+      rows.forEach(r => r.style.display = '');
+    }
+
+    applyBtn.addEventListener('click', applyFilters);
+    clearBtn.addEventListener('click', clearFilters);
+
+    // Optional: live filter on change
+    [genderEl, deptEl, probMinEl, probMaxEl].forEach(el => {
+      el.addEventListener('change', applyFilters);
+    });
+  </script>
+
+</body>
+</html>
