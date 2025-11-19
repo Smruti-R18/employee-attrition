@@ -24,7 +24,7 @@ body{
 
 nav {
     width:100%;
-    max-width:900px;
+    max-width:1200px;    /* increased */
     display:flex;
     justify-content:space-between;
     align-items:center;
@@ -58,7 +58,7 @@ nav {
 
 .card{
     width:100%;
-    max-width:900px;
+    max-width:1200px;   /* increased */
     background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
     border-radius:var(--radius);
     padding:28px;
@@ -132,7 +132,7 @@ td {
 
 .filters {
   width:100%;
-  max-width:900px;
+  max-width:1200px;  /* increased */
   display:flex;
   flex-wrap:wrap;
   gap:12px;
@@ -203,7 +203,7 @@ td {
 
 .suggestion-panel{
   width:100%;
-  max-width:900px;
+  max-width:1200px;  /* increased */
   margin-top:18px;
   background: var(--glass);
   border-radius: var(--radius);

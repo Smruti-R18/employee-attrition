@@ -7,4 +7,6 @@ flask
 mysql-connector-python
 sqlalchemy
 pymysql
+flask_sqlalchemy
+bcrypt
 #-e .

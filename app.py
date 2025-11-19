@@ -7,6 +7,8 @@ from src.exception import CustomException
 from src.database import insert_prediction
 from flask_sqlalchemy import SQLAlchemy
 import bcrypt
+from flask import send_file, abort
+import datetime
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///database.db'
@@ -38,6 +40,37 @@ PREPROCESSOR_PATH = os.path.join("artifacts", "preprocessor.pkl")
 # Initialize the prediction pipeline
 pipeline = PredictionPipeline(model_path=MODEL_PATH, preprocessor_path=PREPROCESSOR_PATH)
 
+@app.route('/reports')
+def reports():
+    """
+    Shows a simple page listing files in uploads/ that can be downloaded.
+    """
+    uploads_dir = os.path.join(os.getcwd(), "uploads")
+    files = []
+    file_mtimes = {}
+    if os.path.exists(uploads_dir):
+        for f in sorted(os.listdir(uploads_dir), reverse=True):
+            # only list csv files for safety
+            if f.lower().endswith(".csv"):
+                files.append(f)
+                path = os.path.join(uploads_dir, f)
+                mtime = datetime.datetime.fromtimestamp(os.path.getmtime(path)).strftime("%Y-%m-%d %H:%M:%S")
+                file_mtimes[f] = mtime
+
+    return render_template("reports.html", files=files, file_mtimes=file_mtimes)
+
+
+@app.route('/download/<path:filename>')
+def download_report(filename):
+    """
+    Serves a file from uploads/ for download.
+    """
+    uploads_dir = os.path.join(os.getcwd(), "uploads")
+    safe_path = os.path.join(uploads_dir, filename)
+    if not os.path.exists(safe_path):
+        abort(404)
+    # send as attachment
+    return send_file(safe_path, as_attachment=True)
 
 @app.route('/home')
 def home():
@@ -46,11 +79,15 @@ def home():
         return render_template('index.html')
     return redirect("/login")
 
+@app.route('/')
+def root():
+    return redirect(url_for('login'))
+
 
 @app.route('/login', methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        print("HIIIIII LOGIN")
+        print("LOGIN")
         email = request.form['email']
         password = request.form['password']
         user = User.query.filter_by(email=email).first()
@@ -66,7 +103,7 @@ def login():
 @app.route('/register', methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        print("HIIIIII REGISTER")
+        print("REGISTER")
         name = request.form['name']
         email = request.form['email']
         password = request.form['password']

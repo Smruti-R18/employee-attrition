@@ -1,6 +1,8 @@
 import os
 import sys
 import joblib
+import hmac
+import hashlib
 from sklearn.metrics import f1_score, roc_auc_score
 
 from src.exception import CustomException
@@ -72,3 +74,18 @@ def evaluate_models(X_train, y_train, X_test, y_test, models, params):
 
     except Exception as e:
         raise CustomException(e, sys)
+    
+def pseudonymize(identifier: str, length: int = 10) -> str:
+    """
+    Deterministic pseudonym for an identifier using HMAC-SHA256.
+    Set environment variable PSEUDO_KEY in production to a strong secret.
+    """
+    try:
+        if identifier is None:
+            identifier = ""
+        secret = os.getenv("PSEUDO_KEY", "dev_change_me")  # change in prod
+        digest = hmac.new(secret.encode(), str(identifier).encode(), hashlib.sha256).hexdigest()
+        return digest[:length]
+    except Exception:
+        # fallback to plain sha256 if HMAC fails
+        return hashlib.sha256(str(identifier).encode()).hexdigest()[:length]

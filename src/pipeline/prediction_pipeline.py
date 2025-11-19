@@ -1,76 +1,61 @@
+# src/pipeline/prediction_pipeline.py
 import os
 import sys
 import pandas as pd
+import numpy as np
+
 from src.utils import load_object
+from src.recommendations import generate_recommendation
 from src.exception import CustomException
 from src.logger import logging
 
-
 class PredictionPipeline:
-    def __init__(self, model_path: str, preprocessor_path: str):
-        """
-        Load the trained ML model and optional preprocessor.
-        """
+    def __init__(self, model_path, preprocessor_path):
+        self.model = load_object(model_path)
+
         try:
-            logging.info("Loading model and preprocessor in PredictionPipeline")
-            self.model = load_object(model_path)
+            self.preprocessor = load_object(preprocessor_path)
+        except:
+            self.preprocessor = None
 
-            # Try loading standalone preprocessor (if model doesn’t include one)
-            try:
-                self.preprocessor = load_object(preprocessor_path)
-            except Exception as e:
-                logging.warning(f"Could not load standalone preprocessor: {e}")
-                self.preprocessor = None
-
-        except Exception as e:
-            raise CustomException(e, sys)
-
-    def predict_from_file(self, file_path: str) -> str:
-        """
-        Read input CSV, perform prediction, add Attrition Probability & Risk level,
-        and save a new CSV with results.
-        """
+    def predict_from_file(self, file_path):
         try:
             df = pd.read_csv(file_path)
-            logging.info(f"Loaded input file with shape {df.shape}")
+            raw_df = df.copy()
 
-            # Detect if model already includes preprocessor
-            has_preprocessor = False
-            if hasattr(self.model, "named_steps"):
-                has_preprocessor = "preprocessor" in self.model.named_steps
+            has_pre = hasattr(self.model, "named_steps") and "preprocessor" in self.model.named_steps
 
-            # Predict probabilities
-            if has_preprocessor:
-                logging.info("Model includes preprocessor — using raw data directly.")
-                probabilities = self.model.predict_proba(df)[:, 1]
-            elif self.preprocessor is not None:
-                logging.info("Using external preprocessor for transformation.")
-                X_transformed = self.preprocessor.transform(df)
-                probabilities = self.model.predict_proba(X_transformed)[:, 1]
+            if has_pre:
+                X = df
             else:
-                raise CustomException("No preprocessor found in model or separately.", sys)
+                X = self.preprocessor.transform(df)
 
-            # Add probability column
-            df["Attrition_Probability"] = probabilities
+            if hasattr(self.model, "predict_proba"):
+                prob = self.model.predict_proba(X)[:, 1]
+            else:
+                pred = self.model.predict(X)
+                prob = np.array([float(p) for p in pred])
 
-            # Categorize risk level
-            def risk_category(p):
-                if p >= 0.6:
-                    return "High-risk"
-                elif 0.5 <= p < 0.6:
-                    return "Medium-risk"
-                else:
-                    return "Low-risk"
+            df["Attrition_Probability"] = prob
+            df["Attrition_Prediction"] = ["High-risk" if p >= 0.75 else ("Medium-risk" if p >= 0.40 else "Low-risk") for p in prob]
 
-            df["Attrition_Prediction"] = [risk_category(p) for p in probabilities]
+            # ------------------------
+            # Recommendations + ID
+            # ------------------------
+            recs_list = []
+            ids_list = []
+            for idx, row in raw_df.iterrows():
+                row_dict = row.to_dict()
+                display_id, risk, recs = generate_recommendation(row_dict, float(prob[idx]))
+                ids_list.append(display_id)
+                recs_list.append(','.join(recs))
 
-            # Save result CSV
-            os.makedirs("uploads", exist_ok=True)
-            output_path = os.path.join("uploads", "predictions.csv")
-            df.to_csv(output_path, index=False)
+            df["Employee_ID"] = ids_list
+            df["Recommendations"] = recs_list
 
-            logging.info(f"Predictions saved to {output_path}")
-            return output_path
+            out = os.path.join("uploads", "predictions.csv")
+            df.to_csv(out, index=False)
+            return out
 
         except Exception as e:
             raise CustomException(e, sys)

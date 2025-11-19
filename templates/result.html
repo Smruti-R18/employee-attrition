@@ -5,15 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Employee List</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='resultStyle.css') }}" />
+  <style>
+    /* small, page-specific tweaks */
+    .reco { white-space: pre-wrap; max-width: 560px; word-break: break-word; }
+    .small-mono { font-family: monospace; font-size: 0.9rem; color:#cbd5e1; }
+    .controls-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .inline { display:inline-flex; gap:8px; align-items:center; }
+    .sort-select { background:#0b1220; color:#e6eef8; border:1px solid rgba(255,255,255,0.08); padding:8px; border-radius:8px; }
+    .badge { font-size:12px; padding:6px 10px; border-radius:12px; background:rgba(255,255,255,0.03); color:var(--muted); border:1px solid rgba(255,255,255,0.04); }
+    .table-wrap { overflow-x:auto; }
+    /* make table cells vertically centered */
+    td, th { vertical-align: middle; }
+  </style>
 </head>
 
 <body>
   <nav>
     <div class="nav-brand">EmployeePortal</div>
     <div class="nav-links">
-      <a href="#">Home</a>
-      <a href="#">Employees</a>
-      <a href="#">Reports</a>
+      <a href="{{ url_for('home') }}">Home</a>
+      <a href="{{ url_for('reports') }}">Reports</a>
       <a href="/logout">Logout</a>
     </div>
   </nav>
@@ -21,17 +32,8 @@
   <div class="card">
     <h2>Employee Directory</h2>
 
-    <div class="filters">
-      <div class="filter-item">
-        <label>Gender</label>
-        <select id="filter-gender">
-          <option value="">All</option>
-          {% for g in data | map(attribute='Gender') | unique | list %}
-            <option value="{{ g }}">{{ g }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
+    <!-- Filters (same as before) -->
+    <div class="filters" id="filters-panel">
       <div class="filter-item">
         <label>Department</label>
         <select id="filter-dept">
@@ -43,156 +45,187 @@
       </div>
 
       <div class="filter-item">
-        <label>Attrition Probability</label>
+        <label>Gender</label>
+        <select id="filter-gender">
+          <option value="">All</option>
+          {% for g in data | map(attribute='Gender') | unique | list %}
+            <option value="{{ g }}">{{ g }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-item">
+        <label>Risk</label>
+        <select id="filter-risk">
+          <option value="">All</option>
+          <option value="High-risk">High-risk</option>
+          <option value="Medium-risk">Medium-risk</option>
+          <option value="Low-risk">Low-risk</option>
+        </select>
+      </div>
+
+      <div class="filter-item">
+        <label>Probability range</label>
         <div class="range">
-          <input id="filter-prob-min" type="number" step="0.01" min="0" max="1" placeholder="Min (e.g., 0.2)">
+          <input id="filter-prob-min" type="number" step="0.01" min="0" max="1" placeholder="Min (0.0)">
           <span>–</span>
-          <input id="filter-prob-max" type="number" step="0.01" min="0" max="1" placeholder="Max (e.g., 0.8)">
+          <input id="filter-prob-max" type="number" step="0.01" min="0" max="1" placeholder="Max (1.0)">
         </div>
       </div>
 
-      <div class="filter-actions">
+      <div class="filter-item">
+        <label>Search (ID / JobRole)</label>
+        <input id="filter-search" type="text" placeholder="e.g., EMP-1 or Sales Executive">
+      </div>
+
+      <div class="filter-item">
+        <label>Sort by</label>
+        <select id="sort-by" class="sort-select">
+          <option value="none">None</option>
+          <option value="prob_asc">Probability ↑</option>
+          <option value="prob_desc">Probability ↓</option>
+        </select>
+      </div>
+
+      <div class="filter-actions" style="align-self:flex-start;">
         <button id="apply-filters" class="btn">Apply</button>
         <button id="clear-filters" class="btn btn-ghost">Clear</button>
       </div>
     </div>
 
+    <div class="table-wrap">
+      <table id="employees-table">
+        <thead>
+          <tr>
+            <th>Sr No</th>
+            <th>Employee ID</th>
+            <th>Department</th>
+            <th>Job Role</th>
+            <th>Gender</th>
+            <th>Attrition Probability</th>
+            <th>Attrition Prediction</th>
+            <th>Recommendations</th>
+          </tr>
+        </thead>
 
-   
+        <tbody id="table-body">
+          {% for i in data %}
+          <tr 
+            data-emp="{{ i.get('Employee_ID', i.get('Employee_PseudoID','')) }}"
+            data-dept="{{ i['Department'] }}"
+            data-jobrole="{{ i.get('JobRole','') }}"
+            data-gender="{{ i['Gender'] }}"
+            data-prob="{{ i['Attrition_Probability'] }}"
+            data-risk="{{ i['Attrition_Prediction'] }}"
+          >
+            <td>{{ loop.index }}</td>
+            <td class="small-mono">{{ i.get('Employee_ID', i.get('Employee_PseudoID','—')) }}</td>
+            <td>{{ i["Department"] }}</td>
+            <td>{{ i.get("JobRole","—") }}</td>
+            <td>{{ i["Gender"] }}</td>
+            <td>{{ i["Attrition_Probability"] | round(2) }}</td>
+            {% if i["Attrition_Prediction"] == "High-risk" %}
+            <td><span class="status high-risk">{{i["Attrition_Prediction"]}}</span></td>
+            {% elif i["Attrition_Prediction"] == "Medium-risk" %}
+            <td><span class="status medium-risk">{{i["Attrition_Prediction"]}}</span></td>
+            {% else %}
+            <td><span class="status low-risk">{{i["Attrition_Prediction"]}}</span></td>
+            {% endif %}
+            <td class="reco">{{ i.get("Recommendations","—") }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
 
-
-
-    <table>
-      <thead>
-        <tr>
-          <th>Sr No</th>
-          <th>Department</th>
-          <th>Education Field</th>
-          <th>Gender</th>
-          <th>Attrition_Probability</th>
-          <th>Attrition_Prediction</th>
-        </tr>
-      </thead>
-      
-      <tbody>
-        {% for i in data %}
-        <tr 
-          data-gender="{{ i['Gender'] }}"
-          data-dept="{{ i['Department'] }}"
-          data-prob="{{ i['Attrition_Probability'] }}"
-        >
-          <td>{{loop.index}}</td>
-          <td>{{i["Department"]}}</td>
-          <td>{{i["EducationField"]}}</td>
-          <td>{{i["Gender"]}}</td>
-          <td>{{i["Attrition_Probability"] | round(2)}}</td>
-          {% if i["Attrition_Prediction"] == "High-risk" %}
-          <td><span class="status high-risk">{{i["Attrition_Prediction"]}}</span></td>
-          {% elif i["Attrition_Prediction"] == "Medium-risk" %}
-          <td><span class="status medium-risk">{{i["Attrition_Prediction"]}}</span></td>
-          {% else %}
-          <td><span class="status low-risk">{{i["Attrition_Prediction"]}}</span></td>
-          {% endif %}
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+      <div class="badge">Showing <span id="visible-count">{{ data|length }}</span> of <strong>{{ data|length }}</strong></div>
+      <div style="color:var(--muted); font-size:13px;">Tip: Use filters to narrow results. Visit <a href="{{ url_for('reports') }}" style="color:#fff; text-decoration:underline;">Reports</a> to download predictions.</div>
+    </div>
   </div>
 
-   {% set low_list = data | selectattr('Attrition_Probability', 'lt', 0.4) | list %}
-    <section class="suggestion-panel">
-      <div class="suggestion-header">
-        <h3>Retention Suggestions (Prob &lt; 0.40)</h3>
-        <span class="count-badge">{{ low_list | length }}</span>
-      </div>
-
-      {% if low_list %}
-        <ul class="suggestion-list">
-          {% for r in low_list %}
-          <li class="suggestion-item">
-            <div class="employee-meta">
-              <div class="emp-tags">
-                <span class="tag dept">{{ r['Department'] }}</span>
-                <span class="tag gender">{{ r['Gender'] }}</span>
-              </div>
-              <div class="prob-chip">
-                Prob: {{ "%.2f"|format(r['Attrition_Probability']) }}
-              </div>
-            </div>
-
-            <div class="suggestion-actions">
-              <!-- Arbitrary, sensible placeholders -->
-              <span class="sugg">{{ loop.cycle(
-                "Review compensation / salary adjustment",
-                "Renew/extend contract early",
-                "Offer flexible work arrangement",
-                "Plan a growth & training path",
-                "Schedule 1:1 for engagement check",
-                "Assign mentor / buddy for support"
-              ) }}</span>
-            </div>
-          </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <div class="suggestion-empty">
-          <p>No employees currently below 0.40 probability.</p>
-        </div>
-      {% endif %}
-    </section>
-
-
   <script>
-    const genderEl = document.getElementById('filter-gender');
+    // Elements
     const deptEl = document.getElementById('filter-dept');
+    const genderEl = document.getElementById('filter-gender');
+    const riskEl = document.getElementById('filter-risk');
     const probMinEl = document.getElementById('filter-prob-min');
     const probMaxEl = document.getElementById('filter-prob-max');
+    const searchEl = document.getElementById('filter-search');
+    const sortEl = document.getElementById('sort-by');
+
     const applyBtn = document.getElementById('apply-filters');
     const clearBtn = document.getElementById('clear-filters');
 
-    const rows = Array.from(document.querySelectorAll('tbody tr'));
+    const tbody = document.getElementById('table-body');
+    let rows = Array.from(tbody.querySelectorAll('tr'));
+    const visibleCountEl = document.getElementById('visible-count');
+    const totalCount = rows.length;
 
     function applyFilters() {
-      const g = genderEl.value.trim();
-      const d = deptEl.value.trim();
+      const dept = deptEl.value.trim().toLowerCase();
+      const gender = genderEl.value.trim().toLowerCase();
+      const risk = riskEl.value.trim();
       const minStr = probMinEl.value.trim();
       const maxStr = probMaxEl.value.trim();
+      const search = searchEl.value.trim().toLowerCase();
+      const sortVal = sortEl.value;
 
       const min = minStr === '' ? -Infinity : parseFloat(minStr);
-      const max = maxStr === '' ?  Infinity : parseFloat(maxStr);
+      const max = maxStr === '' ? Infinity : parseFloat(maxStr);
 
-      rows.forEach(row => {
-        const rowGender = row.dataset.gender || '';
-        const rowDept = row.dataset.dept || '';
+      let filtered = rows.filter(row => {
+        const rowDept = (row.dataset.dept || '').toLowerCase();
+        const rowGender = (row.dataset.gender || '').toLowerCase();
+        const rowRisk = (row.dataset.risk || '');
         const rowProb = parseFloat(row.dataset.prob || '0');
+        const rowEmp = (row.dataset.emp || '').toLowerCase();
+        const rowJob = (row.dataset.jobrole || '').toLowerCase();
 
-        const genderOk = !g || rowGender === g;
-        const deptOk = !d || rowDept === d;
+        const deptOk = !dept || rowDept === dept;
+        const genderOk = !gender || rowGender === gender;
+        const riskOk = !risk || rowRisk === risk;
         const probOk = (rowProb >= min) && (rowProb <= max);
+        const searchOk = !search || rowEmp.includes(search) || rowJob.includes(search);
 
-        if (genderOk && deptOk && probOk) {
-          row.style.display = '';
-        } else {
-          row.style.display = 'none';
-        }
+        return deptOk && genderOk && riskOk && probOk && searchOk;
       });
+
+      if (sortVal === 'prob_asc') {
+        filtered.sort((a,b) => parseFloat(a.dataset.prob||0) - parseFloat(b.dataset.prob||0));
+      } else if (sortVal === 'prob_desc') {
+        filtered.sort((a,b) => parseFloat(b.dataset.prob||0) - parseFloat(a.dataset.prob||0));
+      }
+
+      rows.forEach(r => r.style.display = 'none');
+      filtered.forEach(r => r.style.display = '');
+
+      visibleCountEl.textContent = filtered.length;
     }
 
     function clearFilters() {
-      genderEl.value = '';
       deptEl.value = '';
+      genderEl.value = '';
+      riskEl.value = '';
       probMinEl.value = '';
       probMaxEl.value = '';
+      searchEl.value = '';
+      sortEl.value = 'none';
       rows.forEach(r => r.style.display = '');
+      visibleCountEl.textContent = totalCount;
     }
 
     applyBtn.addEventListener('click', applyFilters);
     clearBtn.addEventListener('click', clearFilters);
 
-    // Optional: live filter on change
-    [genderEl, deptEl, probMinEl, probMaxEl].forEach(el => {
-      el.addEventListener('change', applyFilters);
+    searchEl.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyFilters();
+      }
     });
+
+    [deptEl, genderEl, riskEl, sortEl].forEach(el => el.addEventListener('change', applyFilters));
   </script>
 
 </body>
