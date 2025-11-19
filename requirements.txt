@@ -1,3 +1,4 @@
+scikit-learn==1.7.1
 pandas
 matplotlib
 seaborn 
@@ -9,4 +10,6 @@ sqlalchemy
 pymysql
 flask_sqlalchemy
 bcrypt
+
+
 #-e .
