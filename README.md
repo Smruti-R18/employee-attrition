@@ -10,7 +10,7 @@ Built using **Python**, **Flask**, and **Scikit-Learn (v1.7.1)**.
 ### Option 1: Run directly (fastest)
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/employee-attrition.git
+git clone https://github.com/Smruti-R18/employee-attrition.git
 cd employee-attrition
 
 # Run the app
@@ -25,7 +25,7 @@ Follow these steps to create a fresh Python environment, install dependencies, a
 
 ### 🧩 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/employee-attrition.git
+git clone https://github.com/Smruti-R18/employee-attrition.git
 cd employee-attrition
 ```
 
@@ -60,5 +60,6 @@ or
 The web application should now be running locally.
 
 💡 To test the application, you can use the sample input files available in the **`test_inputs/`** folder.  
+
 
 
